@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogos da Copa do Mundo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #jogos {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        .jogo {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+        .jogo:last-child {
+            border-bottom: none;
+        }
+        #resultado-final {
+            background-color: #ffebcd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogos da Copa do Mundo</h1>
+
+    <label for="data">Selecione a data:</label>
+    <input type="date" id="data" />
+    <button onclick="buscarJogos()">Buscar Jogos</button>
+
+    <div id="jogos">
+        <!-- Os jogos serão exibidos aqui -->
+    </div>
+
+    <div id="resultado-final">
+        <h2>Resultado da Final da Copa do Mundo</h2>
+        <div id="final">
+            <!-- Resultado da final será exibido aqui -->
+        </div>
+    </div>
+
+    <script>
+        // Função para buscar os jogos de uma data específica
+        async function buscarJogos() {
+            const dataSelecionada = document.getElementById('data').value;
+
+            if (!dataSelecionada) {
+                alert('Por favor, selecione uma data.');
+                return;
+            }
+
+            try {
+                // Faz a requisição para a API
+                const resposta = await fetch('https://worldcupjson.net/matches');
+                
+                if (!resposta.ok) {
+                    throw new Error('Erro ao buscar os jogos. Código do erro: ' + resposta.status);
+                }
+
+                const jogos = await resposta.json();
+
+                // Filtra os jogos para a data selecionada
+                const jogosDaData = jogos.filter(jogo => {
+                    const dataJogo = new Date(jogo.datetime);
+                    const dataFormatada = dataJogo.toISOString().split('T')[0];
+                    return dataFormatada === dataSelecionada;
+                });
+
+                // Limpa o conteúdo atual
+                const divJogos = document.getElementById('jogos');
+                divJogos.innerHTML = '';
+
+                if (jogosDaData.length === 0) {
+                    divJogos.innerHTML = '<p>Nenhum jogo encontrado para a data selecionada.</p>';
+                    return;
+                }
+
+                // Exibe os jogos da data
+                jogosDaData.forEach(jogo => {
+                    const jogoDiv = document.createElement('div');
+                    jogoDiv.classList.add('jogo');
+
+                    const dataHoraJogo = new Date(jogo.datetime).toLocaleString('pt-BR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                        timeZone: 'UTC'
+                    });
+
+                    jogoDiv.innerHTML = `
+                        <p><strong>${jogo.home_team.name}</strong> vs <strong>${jogo.away_team.name}</strong></p>
+                        <p>Data e Hora: ${dataHoraJogo}</p>
+                        <p>Estádio: ${jogo.venue}</p>
+                    `;
+                    divJogos.appendChild(jogoDiv);
+                });
+
+            } catch (erro) {
+                console.error('Erro:', erro);
+                alert('Ocorreu um erro ao buscar os jogos. Tente novamente mais tarde.');
+            }
+        }
+
+        // Função para buscar e exibir o resultado da final da Copa do Mundo
+        async function buscarResultadoFinal() {
+            try {
+                // Faz a requisição para a API
+                const resposta = await fetch('https://worldcupjson.net/matches');
+                const dados = await resposta.json();
+                
+                // Encontrar o jogo da final
+                const final = dados.find(jogo => jogo.stage_name === 'Final');
+
+                // Verificar se encontramos o jogo final
+                if (final) {
+                    const timeCampeao = final.winner;
+                    const timeVice = final.home_team_country === timeCampeao ? final.away_team_country : final.home_team_country;
+
+                    // Exibir os resultados da final
+                    document.getElementById('final').innerHTML = `
+                        <p><strong>Campeão:</strong> ${timeCampeao}</p>
+                        <p><strong>Vice-campeão:</strong> ${timeVice}</p>
+                        <p><strong>Placar:</strong> ${final.home_team.name} ${final.home_team.goals} x ${final.away_team.goals} ${final.away_team.name}</p>
+                    `;
+                } else {
+                    document.getElementById('final').innerHTML = 'Não foi possível encontrar a final.';
+                }
+            } catch (erro) {
+                console.error('Erro ao buscar dados da final:', erro);
+                document.getElementById('final').innerHTML = 'Erro ao buscar dados da final.';
+            }
+        }
+
+        // Chamar a função para buscar o resultado da final ao carregar a página
+        buscarResultadoFinal();
+    </script>
+</body>
+</html>
